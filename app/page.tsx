@@ -3,8 +3,11 @@ import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
+import { notionApi } from '@/lib/notionApi';
 
-export default function Home() {
+export default async function Home() {
+  const recentPosts = await notionApi.getPosts('desc', 1, 3);
+
   return (
     <div className="bg-gradient-to-b from-pink-50 to-background dark:from-pink-950/20">
       {/* Hero Section */}
@@ -21,10 +24,12 @@ export default function Home() {
               こんにちは! I&apos;m Ahoge Hakase, your guide through programming,
               research, and all things kawaii~
             </p>
-            <Button className="group" size="lg">
-              Read Blog{' '}
-              <ChevronRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
-            </Button>
+            <Link href="/blog">
+              <Button className="group" size="lg">
+                Read Blog{' '}
+                <ChevronRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+              </Button>
+            </Link>
           </div>
           <div className="relative mx-auto aspect-square w-full max-w-md">
             <Image
@@ -43,26 +48,29 @@ export default function Home() {
       <section className="container py-24">
         <h2 className="mb-12 text-center text-3xl font-bold">Recent Posts</h2>
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {[1, 2, 3].map((i) => (
+          {recentPosts.map((post) => (
             <Link
-              key={i}
-              href="/blog/post"
+              key={post.id}
+              href={`/blog/${post.slug}`}
               className="group relative overflow-hidden rounded-lg border bg-card p-4 text-card-foreground transition-shadow hover:shadow-lg"
             >
               <div className="relative mb-4 aspect-video overflow-hidden rounded-md">
                 <Image
-                  src="/placeholder.svg"
-                  alt="Post thumbnail"
+                  src={post.coverImage ?? '/placeholder.svg'}
+                  alt={`"${post.title}"'s cover image`}
                   fill
                   className="object-cover transition-transform group-hover:scale-105"
                 />
               </div>
               <h3 className="mb-2 font-semibold">
-                Understanding TypeScript Generics
+                {post.title.length > 50
+                  ? `${post.title.slice(0, 50)}...`
+                  : post.title}
               </h3>
               <p className="text-sm text-muted-foreground">
-                A beginner-friendly guide to using generics in TypeScript with
-                practical examples...
+                {post.description.length > 100
+                  ? `${post.description.slice(0, 100)}...`
+                  : post.description}
               </p>
             </Link>
           ))}

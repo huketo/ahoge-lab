@@ -20,17 +20,50 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
-## Learn More
+## Supported Blocks
 
-To learn more about Next.js, take a look at the following resources:
+The majority of Notion blocks and collection views are fully supported.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+| Block Type               | Supported | Block Type Enum        | Notes                                                                                                            |
+| ------------------------ | :-------: | ---------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Page                     |    ❌     | `page`                 |
+| Text                     |    ❌     | `text`                 | Supports all known text formatting options                                                                       |
+| Bookmark                 |    ❌     | `bookmark`             | Embedded preview of external URL                                                                                 |
+| Bulleted List            |    ❌     | `bulleted_list`        | `<ul>`                                                                                                           |
+| Numbered List            |    ❌     | `numbered_list`        | `<ol>`                                                                                                           |
+| Heading 1                |    ❌     | `header`               | `<h1>`                                                                                                           |
+| Heading 2                |    ❌     | `sub_header`           | `<h2>`                                                                                                           |
+| Heading 3                |    ❌     | `sub_sub_header`       | `<h3>`                                                                                                           |
+| Quote                    |    ❌     | `quote`                |
+| Callout                  |    ❌     | `callout`              |
+| Equation (block)         |    ❌     | `equation`             | [katex](https://katex.org/) via [react-katex](https://github.com/MatejBransky/react-katex)                       |
+| Equation (inline)        |    ❌     | `text`                 | [katex](https://katex.org/) via [react-katex](https://github.com/MatejBransky/react-katex)                       |
+| Todos (checkboxes)       |    ❌     | `to_do`                |
+| Table Of Contents        |    ❌     | `table_of_contents`    | See `notion-utils` `getPageTableOfContents` helper funtion                                                       |
+| Divider                  |    ❌     | `divider`              | Horizontal line                                                                                                  |
+| Column                   |    ❌     | `column`               |
+| Column List              |    ❌     | `column_list`          |
+| Toggle                   |    ❌     | `toggle`               | [`<details>`](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/details)                                 |
+| Image                    |    ❌     | `image`                | `<img>`                                                                                                          |
+| Embed                    |    ❌     | `embed`                | Generic `iframe` embeds                                                                                          |
+| Video                    |    ❌     | `video`                | `iframe`                                                                                                         |
+| Figma                    |    ❌     | `figma`                | `iframe`                                                                                                         |
+| Google Maps              |    ❌     | `maps`                 | `iframe`                                                                                                         |
+| Google Drive             |    ❌     | `drive`                | Google Docs, Sheets, etc custom embed                                                                            |
+| Tweet                    |    ❌     | `tweet`                | Uses the twitter embedding SDK                                                                                   |
+| PDF                      |    ❌     | `pdf`                  | Uses S3 signed URLs and [react-pdf](https://github.com/wojtekmaj/react-pdf)                                      |
+| Audio                    |    ❌     | `audio`                | Uses S3 signed URLs and [HTML5 `audio` element](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/audio) |
+| File                     |    ❌     | `file`                 | Uses S3 signed URLs (generic downloadable file)                                                                  |
+| Link                     |    ❌     | `text`                 | External links                                                                                                   |
+| Page Link                |    ❌     | `page`                 | Link to a notion page in the same workspace                                                                      |
+| External Page Link       |    ❌     | `text`                 | Links to a notion page or collection view in another workspace                                                   |
+| Code (block)             |    ❌     | `code`                 | Block code syntax highlighting via [prismjs](https://prismjs.com/)                                               |
+| Code (inline)            |    ❌     | `text`                 | Inline code formatting (no syntax highlighting)                                                                  |
+| Collections              |    ❌     |                        | Also known as [databases](https://www.notion.so/Intro-to-databases-fd8cd2d212f74c50954c11086d85997e)             |
+| Collection View          |    ❌     | `collection_view`      | Collections have a 1:N mapping to collection views                                                               |
+| Collection View Table    |    ❌     | `collection_view`      | `type = "table"` (default table view)                                                                            |
+| Collection View Gallery  |    ❌     | `collection_view`      | `type = "gallery"` (grid view)                                                                                   |
+| Collection View Board    |    ❌     | `collection_view`      | `type = "board"` (kanban view)                                                                                   |
+| Collection View List     |    ❌     | `collection_view`      | `type = "list"` (vertical list view)                                                                             |
+| Collection View Calendar |    ❌     | `collection_view`      | `type = "calendar"` (embedded calendar view)                                                                     |
+| Collection View Page     |    ❌     | `collection_view_page` | Collection view as a standalone page                                                                             |
