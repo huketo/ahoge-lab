@@ -1,6 +1,8 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Client, isFullPage } from '@notionhq/client';
-import { BlockObjectResponse } from '@notionhq/client/build/src/api-endpoints';
+import {
+  BlockObjectResponse,
+  RichTextItemResponse,
+} from '@notionhq/client/build/src/api-endpoints';
 import { compareAsc, compareDesc } from 'date-fns';
 import lqip from 'lqip-modern';
 
@@ -27,10 +29,6 @@ const noop = async (block: BlockObjectResponse) => block;
  */
 type BlockType = BlockObjectResponse['type'];
 
-/**
- * Lookup table for transforming block types
- * Allows to transform an api response for a specific block type into a more usable format
- */
 /**
  * Lookup table for transforming block types
  * Allows to transform an api response for a specific block type into a more usable format
@@ -84,6 +82,46 @@ const BlockTypeTransformLookup: Record<
   link_preview: noop,
   unsupported: noop,
 };
+
+export type NotionListBlock = {
+  id: string;
+  type: 'bulleted_list' | 'numbered_list';
+  bulleted_list?: {
+    children: BlockObjectResponse[];
+  };
+  numbered_list?: {
+    children: BlockObjectResponse[];
+  };
+};
+
+export type BlockValue = {
+  rich_text?: RichTextItemResponse[];
+  checked?: boolean;
+  children?: BlockObjectResponse[];
+  caption?: RichTextItemResponse[];
+  language?: string;
+  url?: string;
+  external?: { url: string };
+  file?: { url: string };
+  size?: { width: number; height: number };
+  placeholder?: string;
+  title?: string;
+  type?: BlockObjectResponse['type'] | 'external' | 'file';
+};
+
+type NotionBlockType =
+  | BlockObjectResponse['type']
+  | 'bulleted_list'
+  | 'numbered_list';
+
+type BlockData = {
+  [K in NotionBlockType]: BlockValue;
+};
+
+export type TransformedBlock = {
+  id: string;
+  type: NotionBlockType;
+} & Partial<BlockData>;
 
 const CompareFunctionLookup = {
   asc: compareAsc,
@@ -404,7 +442,9 @@ class NotionApi {
     );
   }
 
-  private getPageContent = async (pageId: string) => {
+  private getPageContent = async (
+    pageId: string
+  ): Promise<TransformedBlock[]> => {
     const blocks = await this.getBlocks(pageId);
 
     const blocksChildren = await Promise.all(

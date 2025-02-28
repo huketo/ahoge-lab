@@ -1,25 +1,26 @@
-import { TextRichTextItemResponse } from '@notionhq/client/build/src/api-endpoints';
+import { RichTextItemResponse } from '@notionhq/client/build/src/api-endpoints';
 import clsx from 'clsx';
 import Image from 'next/image';
 import Link from 'next/link';
 
 import { Quote } from '../quote';
+import { BlockValue, NotionListBlock, TransformedBlock } from '@/lib/notionApi';
 
-//TODO: improve types here, cleanup the code
 type Props = {
-  block: any;
+  block: TransformedBlock;
 };
 
 export const NotionBlockRenderer = ({ block }: Props) => {
   const { type, id } = block;
-  const value = block[type];
+  const value = ('type' in block && block[type]) as BlockValue;
+  const children = value?.children;
 
   switch (type) {
     case 'paragraph':
       return (
-        <p>
+        <div className="my-2">
           <NotionText textItems={value.rich_text} />
-        </p>
+        </div>
       );
     case 'heading_1':
       return (
@@ -40,31 +41,36 @@ export const NotionBlockRenderer = ({ block }: Props) => {
         </h3>
       );
     case 'bulleted_list':
-      return (
-        <ul className="list-outside list-disc">
-          {value.children.map((block: any) => (
-            <NotionBlockRenderer key={block.id} block={block} />
-          ))}
-        </ul>
-      );
     case 'numbered_list':
+      const listBlock = block as NotionListBlock;
+      const listChildren = listBlock[type]?.children || [];
       return (
-        <ol className="list-outside list-decimal">
-          {value.children.map((block: any) => (
-            <NotionBlockRenderer key={block.id} block={block} />
+        <div
+          className={clsx('pl-6', {
+            'list-disc': type === 'bulleted_list',
+            'list-decimal': type === 'numbered_list',
+          })}
+        >
+          {listChildren.map((child) => (
+            <NotionBlockRenderer
+              key={child.id}
+              block={child as TransformedBlock}
+            />
           ))}
-        </ol>
+        </div>
       );
     case 'bulleted_list_item':
     case 'numbered_list_item':
       return (
-        <li className="pl-0">
-          <NotionText textItems={value.rich_text} />
-          {!!value.children &&
-            value.children.map((block: any) => (
-              <NotionBlockRenderer key={block.id} block={block} />
-            ))}
-        </li>
+        <div className="my-1">
+          <NotionText textItems={value.rich_text || []} />
+          {children?.map((block) => (
+            <NotionBlockRenderer
+              key={block.id}
+              block={block as TransformedBlock}
+            />
+          ))}
+        </div>
       );
     case 'to_do':
       return (
@@ -90,35 +96,42 @@ export const NotionBlockRenderer = ({ block }: Props) => {
       return <p>{value.title}</p>;
     case 'image':
       const src =
-        value.type === 'external' ? value.external.url : value.file.url;
-      const caption = value.caption ? value.caption[0]?.plain_text : '';
+        value.type === 'external' && value.external?.url
+          ? value.external.url
+          : value.file?.url || '';
       return (
         <figure>
           <Image
             className="object-cover"
             placeholder="blur"
             src={src}
-            alt={caption || `image-${id}`}
+            alt={value.caption?.[0]?.plain_text || `image-${id}`}
             blurDataURL={value.placeholder}
-            width={value.size.width}
-            height={value.size.height}
+            width={value.size?.width ?? 0}
+            height={value.size?.height ?? 0}
           />
-          {caption && <figcaption>{caption}</figcaption>}
+          {value.caption?.[0]?.plain_text && (
+            <figcaption>{value.caption[0].plain_text}</figcaption>
+          )}
         </figure>
       );
     case 'divider':
       return <hr key={id} />;
     case 'quote':
-      return <Quote key={id} quote={value.rich_text[0].plain_text} />;
+      return value.rich_text?.[0]?.plain_text ? (
+        <Quote key={id} quote={value.rich_text[0].plain_text} />
+      ) : null;
     case 'code':
-      return (
+      return value.rich_text?.[0]?.plain_text ? (
         <pre className={`language-${value.language}`}>
           <code key={id}>{value.rich_text[0].plain_text}</code>
         </pre>
-      );
+      ) : null;
     case 'file':
       const src_file =
-        value.type === 'external' ? value.external.url : value.file.url;
+        value.type === 'external' && value.external?.url
+          ? value.external.url
+          : value.file?.url || '';
       const splitSourceArray = src_file.split('/');
       const lastElementInArray = splitSourceArray[splitSourceArray.length - 1];
       const caption_file = value.caption ? value.caption[0]?.plain_text : '';
@@ -150,18 +163,16 @@ export const NotionBlockRenderer = ({ block }: Props) => {
   }
 };
 
-const NotionText = ({
-  textItems,
-}: {
-  textItems: TextRichTextItemResponse[];
-}) => {
-  if (!textItems) {
+const NotionText = ({ textItems }: { textItems?: RichTextItemResponse[] }) => {
+  if (!textItems?.length) {
     return null;
   }
 
   return (
     <>
       {textItems.map((textItem, idx) => {
+        if (!('text' in textItem)) return null;
+
         const {
           annotations: { bold, code, color, italic, strikethrough, underline },
           text,
@@ -169,7 +180,7 @@ const NotionText = ({
         return (
           <span
             key={`${text?.content}-${idx}`}
-            className={clsx({
+            className={clsx('inline', {
               'font-bold': bold,
               'font-mono font-semibold bg-zinc-600 text-zinc-200 px-1 py-0.5 m-1 rounded-md':
                 code,
