@@ -44,33 +44,52 @@ export const NotionBlockRenderer = ({ block }: Props) => {
     case 'numbered_list':
       const listBlock = block as NotionListBlock;
       const listChildren = listBlock[type]?.children || [];
-      return (
-        <div
-          className={clsx('pl-6', {
-            'list-disc': type === 'bulleted_list',
-            'list-decimal': type === 'numbered_list',
-          })}
-        >
+      return type === 'bulleted_list' ? (
+        <ul className="list-disc pl-6">
           {listChildren.map((child) => (
             <NotionBlockRenderer
               key={child.id}
               block={child as TransformedBlock}
             />
           ))}
-        </div>
+        </ul>
+      ) : (
+        <ol className="list-decimal pl-6">
+          {listChildren.map((child) => (
+            <NotionBlockRenderer
+              key={child.id}
+              block={child as TransformedBlock}
+            />
+          ))}
+        </ol>
       );
     case 'bulleted_list_item':
     case 'numbered_list_item':
       return (
-        <div className="my-1">
+        <li>
           <NotionText textItems={value.rich_text || []} />
-          {children?.map((block) => (
-            <NotionBlockRenderer
-              key={block.id}
-              block={block as TransformedBlock}
-            />
-          ))}
-        </div>
+          {children?.length ? (
+            type === 'bulleted_list_item' ? (
+              <ul className="list-disc pl-4">
+                {children.map((block) => (
+                  <NotionBlockRenderer
+                    key={block.id}
+                    block={block as TransformedBlock}
+                  />
+                ))}
+              </ul>
+            ) : (
+              <ol className="list-decimal pl-4">
+                {children.map((block) => (
+                  <NotionBlockRenderer
+                    key={block.id}
+                    block={block as TransformedBlock}
+                  />
+                ))}
+              </ol>
+            )
+          ) : null}
+        </li>
       );
     case 'to_do':
       return (
