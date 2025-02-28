@@ -27,23 +27,23 @@ The majority of Notion blocks and collection views are fully supported.
 | Block Type               | Supported | Block Type Enum        | Notes                                                                                                            |
 | ------------------------ | :-------: | ---------------------- | ---------------------------------------------------------------------------------------------------------------- |
 | Page                     |    ❌     | `page`                 |
-| Text                     |    ❌     | `text`                 | Supports all known text formatting options                                                                       |
+| Text                     |    ✅     | `text`                 | Supports all known text formatting options                                                                       |
 | Bookmark                 |    ❌     | `bookmark`             | Embedded preview of external URL                                                                                 |
-| Bulleted List            |    ❌     | `bulleted_list`        | `<ul>`                                                                                                           |
-| Numbered List            |    ❌     | `numbered_list`        | `<ol>`                                                                                                           |
-| Heading 1                |    ❌     | `header`               | `<h1>`                                                                                                           |
-| Heading 2                |    ❌     | `sub_header`           | `<h2>`                                                                                                           |
-| Heading 3                |    ❌     | `sub_sub_header`       | `<h3>`                                                                                                           |
-| Quote                    |    ❌     | `quote`                |
+| Bulleted List            |    ✅     | `bulleted_list`        | `<ul>`                                                                                                           |
+| Numbered List            |    ✅     | `numbered_list`        | `<ol>`                                                                                                           |
+| Heading 1                |    ✅     | `header`               | `<h1>`                                                                                                           |
+| Heading 2                |    ✅     | `sub_header`           | `<h2>`                                                                                                           |
+| Heading 3                |    ✅     | `sub_sub_header`       | `<h3>`                                                                                                           |
+| Quote                    |    ✅     | `quote`                |
 | Callout                  |    ❌     | `callout`              |
 | Equation (block)         |    ❌     | `equation`             | [katex](https://katex.org/) via [react-katex](https://github.com/MatejBransky/react-katex)                       |
 | Equation (inline)        |    ❌     | `text`                 | [katex](https://katex.org/) via [react-katex](https://github.com/MatejBransky/react-katex)                       |
-| Todos (checkboxes)       |    ❌     | `to_do`                |
+| Todos (checkboxes)       |    ✅     | `to_do`                |
 | Table Of Contents        |    ❌     | `table_of_contents`    | See `notion-utils` `getPageTableOfContents` helper funtion                                                       |
 | Divider                  |    ❌     | `divider`              | Horizontal line                                                                                                  |
 | Column                   |    ❌     | `column`               |
 | Column List              |    ❌     | `column_list`          |
-| Toggle                   |    ❌     | `toggle`               | [`<details>`](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/details)                                 |
+| Toggle                   |    ✅     | `toggle`               | [`<details>`](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/details)                                 |
 | Image                    |    ❌     | `image`                | `<img>`                                                                                                          |
 | Embed                    |    ❌     | `embed`                | Generic `iframe` embeds                                                                                          |
 | Video                    |    ❌     | `video`                | `iframe`                                                                                                         |
@@ -54,7 +54,7 @@ The majority of Notion blocks and collection views are fully supported.
 | PDF                      |    ❌     | `pdf`                  | Uses S3 signed URLs and [react-pdf](https://github.com/wojtekmaj/react-pdf)                                      |
 | Audio                    |    ❌     | `audio`                | Uses S3 signed URLs and [HTML5 `audio` element](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/audio) |
 | File                     |    ❌     | `file`                 | Uses S3 signed URLs (generic downloadable file)                                                                  |
-| Link                     |    ❌     | `text`                 | External links                                                                                                   |
+| Link                     |    ✅     | `text`                 | External links                                                                                                   |
 | Page Link                |    ❌     | `page`                 | Link to a notion page in the same workspace                                                                      |
 | External Page Link       |    ❌     | `text`                 | Links to a notion page or collection view in another workspace                                                   |
 | Code (block)             |    ❌     | `code`                 | Block code syntax highlighting via [prismjs](https://prismjs.com/)                                               |
