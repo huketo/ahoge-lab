@@ -5,6 +5,7 @@ import Link from 'next/link';
 
 import { Quote } from '../quote';
 import { BlockValue, NotionListBlock, TransformedBlock } from '@/lib/notionApi';
+import { isAllowedDomain } from '@/lib/utils';
 
 type Props = {
   block: TransformedBlock;
@@ -113,27 +114,232 @@ export const NotionBlockRenderer = ({ block }: Props) => {
       );
     case 'child_page':
       return <p>{value.title}</p>;
-    case 'image':
+    case 'image': {
       const src =
         value.type === 'external' && value.external?.url
           ? value.external.url
           : value.file?.url || '';
       return (
         <figure>
-          <Image
-            className="object-cover"
-            placeholder="blur"
-            src={src}
-            alt={value.caption?.[0]?.plain_text || `image-${id}`}
-            blurDataURL={value.placeholder}
-            width={value.size?.width ?? 0}
-            height={value.size?.height ?? 0}
-          />
+          <div className="overflow-hidden">
+            {isAllowedDomain(src) ? (
+              <Image
+                className="w-full object-cover"
+                src={src}
+                alt={value.caption?.[0]?.plain_text || `image-${id}`}
+                width={value.size?.width ?? 800}
+                height={value.size?.height ?? 500}
+                blurDataURL={value.placeholder}
+                placeholder={value.placeholder ? 'blur' : 'empty'}
+                style={{
+                  maxWidth: '100%',
+                  height: 'auto',
+                  margin: 0,
+                  aspectRatio:
+                    value.size?.width && value.size?.height
+                      ? `${value.size.width} / ${value.size.height}`
+                      : 'auto',
+                }}
+                priority={false}
+              />
+            ) : (
+              <Image
+                className="w-full object-cover"
+                src={src}
+                alt={value.caption?.[0]?.plain_text || `image-${id}`}
+                width={value.size?.width ?? 800}
+                height={value.size?.height ?? 500}
+                style={{
+                  maxWidth: '100%',
+                  height: 'auto',
+                  margin: 0,
+                  aspectRatio:
+                    value.size?.width && value.size?.height
+                      ? `${value.size.width} / ${value.size.height}`
+                      : 'auto',
+                }}
+                unoptimized
+              />
+            )}
+          </div>
           {value.caption?.[0]?.plain_text && (
-            <figcaption>{value.caption[0].plain_text}</figcaption>
+            <figcaption className="text-center text-sm text-gray-500">
+              {value.caption[0].plain_text}
+            </figcaption>
           )}
         </figure>
       );
+    }
+    case 'video': {
+      const src =
+        value.type === 'external' && value.external?.url
+          ? value.external.url
+          : value.file?.url || '';
+
+      // YouTube나 Vimeo 링크 처리
+      if (src.includes('youtube.com') || src.includes('youtu.be')) {
+        // Convert YouTube URL to embed URL if needed
+        const youtubeSrc = src.replace(/watch\?v=(\w+)/, 'embed/$1');
+        return (
+          <figure className="my-4">
+            <div className="aspect-video w-full">
+              <iframe
+                src={youtubeSrc}
+                className="h-full w-full rounded-lg"
+                title={value.caption?.[0]?.plain_text || `video-${id}`}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            </div>
+            {value.caption?.[0]?.plain_text && (
+              <figcaption className="text-center mt-2 text-sm text-gray-500">
+                {value.caption[0].plain_text}
+              </figcaption>
+            )}
+          </figure>
+        );
+      }
+
+      return (
+        <figure className="my-4">
+          <video
+            src={src}
+            controls
+            className="w-full rounded-lg"
+            title={value.caption?.[0]?.plain_text || `video-${id}`}
+          >
+            Your browser does not support the video tag.
+          </video>
+          {value.caption?.[0]?.plain_text && (
+            <figcaption className="text-center mt-2 text-sm text-gray-500">
+              {value.caption[0].plain_text}
+            </figcaption>
+          )}
+        </figure>
+      );
+    }
+    case 'pdf': {
+      const src =
+        value.type === 'external' && value.external?.url
+          ? value.external.url
+          : value.file?.url || '';
+
+      return (
+        <figure className="my-4">
+          <div className="aspect-video w-full">
+            <iframe
+              src={src}
+              className="h-full w-full rounded-lg border-2"
+              title={value.caption?.[0]?.plain_text || `pdf-${id}`}
+            />
+          </div>
+          {value.caption?.[0]?.plain_text && (
+            <figcaption className="text-center mt-2 text-sm text-gray-500">
+              {value.caption[0].plain_text}
+            </figcaption>
+          )}
+        </figure>
+      );
+    }
+    case 'embed': {
+      const src = value.url || '';
+
+      return (
+        <figure className="my-4">
+          <div className="aspect-video w-full">
+            <iframe
+              src={src}
+              className="h-full w-full rounded-lg border-2"
+              title={`embed-${id}`}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+          </div>
+          {value.caption?.[0]?.plain_text && (
+            <figcaption className="text-center mt-2 text-sm text-gray-500">
+              {value.caption[0].plain_text}
+            </figcaption>
+          )}
+        </figure>
+      );
+    }
+    case 'callout': {
+      return (
+        <div className="flex items-start p-4 my-4 rounded-lg bg-gray-100 dark:bg-gray-800">
+          <div className="mr-4 text-xl">{value.icon?.emoji || '💡'}</div>
+          <div>
+            <NotionText textItems={value.rich_text} />
+            {children?.length && (
+              <div className="mt-2">
+                {children.map((block) => (
+                  <NotionBlockRenderer
+                    key={block.id}
+                    block={block as TransformedBlock}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+    case 'equation': {
+      return (
+        <div className="my-4 py-2 px-4 overflow-x-auto">
+          {/* 여기에 KaTeX나 MathJax 같은 수식 렌더링 라이브러리를 사용할 수 있습니다 */}
+          <div className="text-center font-mono">{value.expression}</div>
+        </div>
+      );
+    }
+    case 'table': {
+      return (
+        <div className="my-4 overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <tbody>
+              {value.children?.map((row: any, rowIndex) => (
+                <tr
+                  key={row.id}
+                  className={
+                    rowIndex % 2 === 0
+                      ? 'bg-white dark:bg-gray-900'
+                      : 'bg-gray-50 dark:bg-gray-800'
+                  }
+                >
+                  {row?.table_row?.cells?.map(
+                    (cell: any[], cellIndex: number) => (
+                      <td
+                        key={`${row.id}-${cellIndex}`}
+                        className="px-6 py-4 whitespace-nowrap text-sm"
+                      >
+                        {cell.map((richText, rtIndex) => (
+                          <span
+                            key={`${row.id}-${cellIndex}-${rtIndex}`}
+                            className={clsx({
+                              'font-bold': richText.annotations?.bold,
+                              italic: richText.annotations?.italic,
+                              'line-through':
+                                richText.annotations?.strikethrough,
+                              underline: richText.annotations?.underline,
+                            })}
+                            style={
+                              richText.annotations?.color !== 'default'
+                                ? { color: richText.annotations?.color }
+                                : {}
+                            }
+                          >
+                            {richText.plain_text}
+                          </span>
+                        ))}
+                      </td>
+                    )
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      );
+    }
     case 'divider':
       return <hr key={id} />;
     case 'quote':
@@ -171,6 +377,37 @@ export const NotionBlockRenderer = ({ block }: Props) => {
         <a href={href} target="_brank">
           {href}
         </a>
+      );
+    case 'link_preview':
+      return (
+        <div className="my-4 p-4 border rounded-lg">
+          <a
+            href={value.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex flex-col hover:underline"
+          >
+            <div className="font-medium">{value.url}</div>
+            <div className="text-sm text-gray-500">링크 미리보기</div>
+          </a>
+        </div>
+      );
+    case 'audio':
+      const audio_src =
+        value.type === 'external' && value.external?.url
+          ? value.external.url
+          : value.file?.url || '';
+      return (
+        <figure className="my-4">
+          <audio controls src={audio_src} className="w-full">
+            Your browser does not support the audio element.
+          </audio>
+          {value.caption?.[0]?.plain_text && (
+            <figcaption className="text-center mt-2 text-sm text-gray-500">
+              {value.caption[0].plain_text}
+            </figcaption>
+          )}
+        </figure>
       );
     default:
       return (
