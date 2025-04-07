@@ -6,11 +6,11 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'www.notion.so',
+        hostname: '*amazonaws.com',
       },
       {
         protocol: 'https',
-        hostname: '*.amazonaws.com',
+        hostname: 'www.notion.so',
       },
       {
         protocol: 'https',
@@ -19,6 +19,10 @@ const nextConfig: NextConfig = {
       {
         protocol: 'https',
         hostname: 'cdn.sanity.io',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.giphy.com',
       },
     ],
   },

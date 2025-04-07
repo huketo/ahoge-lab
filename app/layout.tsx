@@ -12,7 +12,7 @@ export const metadata = {
   description: 'A blog about programming, research, and all things kawaii',
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;

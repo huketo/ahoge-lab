@@ -66,13 +66,66 @@ const BlockTypeTransformLookup: Record<
   bookmark: noop,
   image: async (block: any) => {
     const contents = block[block.type];
-    const buffer = await fetch(contents[contents.type].url).then(async (res) =>
-      Buffer.from(await res.arrayBuffer())
-    );
-    const { metadata } = await lqip(buffer);
-    const blurDataUrl = `data:image/${metadata.type};base64,${metadata.dataURIBase64}`;
-    block.image['size'] = { height: metadata.height, width: metadata.width };
-    block.image['placeholder'] = blurDataUrl;
+    try {
+      // AbortController를 사용하여 타임아웃 구현
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5초 타임아웃
+
+      const buffer = await Promise.race([
+        fetch(contents[contents.type].url, { signal: controller.signal }).then(
+          async (res) => {
+            if (!res.ok)
+              throw new Error(`Failed to fetch image: ${res.status}`);
+            return Buffer.from(await res.arrayBuffer());
+          }
+        ),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Fetch timeout')), 5000)
+        ),
+      ])
+        .catch((err) => {
+          console.warn(`Could not fetch image: ${err.message}`);
+          return null;
+        })
+        .finally(() => {
+          clearTimeout(timeoutId);
+        });
+
+      // 이미지 버퍼를 성공적으로 가져온 경우에만 처리
+      if (buffer) {
+        try {
+          // buffer가 null이 아닌 경우에만 lqip 처리
+          const { metadata } = await lqip(buffer as Buffer);
+
+          // 이미지 크기 정보 저장
+          block.image['size'] = {
+            height: metadata.height || 500,
+            width: metadata.width || 800,
+          };
+
+          // 이미지가 40x40보다 클 경우에만 placeholder 적용
+          if (metadata.height > 40 && metadata.width > 40) {
+            const blurDataURL = `data:${metadata.type};base64,${metadata.dataURIBase64}`;
+            block.image['placeholder'] = blurDataURL;
+          }
+        } catch (error) {
+          // 타입 캐스팅으로 TypeScript 오류 해결
+          const lqipError = error as Error;
+          console.warn(`LQIP processing failed: ${lqipError.message}`);
+          // 메타데이터 생성에 실패해도 기본 크기 정보는 설정
+          block.image['size'] = { height: 500, width: 800 };
+        }
+      } else {
+        // 이미지를 가져오지 못한 경우 기본 크기 설정
+        block.image['size'] = { height: 500, width: 800 };
+      }
+    } catch (err) {
+      // 타입 캐스팅으로 TypeScript 오류 해결
+      const error = err as Error;
+      console.error(`Error processing image block: ${error.message}`);
+      // 오류 발생 시 기본 크기 설정
+      block.image['size'] = { height: 500, width: 800 };
+    }
 
     return block;
   },
@@ -107,6 +160,8 @@ export type BlockValue = {
   placeholder?: string;
   title?: string;
   type?: BlockObjectResponse['type'] | 'external' | 'file';
+  icon?: { emoji: string } | { type: string; [key: string]: any };
+  expression?: string;
 };
 
 type NotionBlockType =
@@ -433,13 +488,16 @@ class NotionApi {
   }
 
   async getAllTags() {
-    const posts = await this.getPosts();
-    return Array.from(
-      posts.reduce((tagSet: Set<string>, post: Post) => {
-        post.tags.forEach((tag) => tagSet.add(tag));
-        return tagSet;
-      }, new Set<string>())
-    );
+    const response = await this.notion.databases.retrieve({
+      database_id: this.databaseId,
+    });
+
+    const tagProperty = response.properties['태그'];
+    if (tagProperty.type === 'multi_select') {
+      return tagProperty.multi_select.options.map((option) => option.name);
+    }
+
+    return [];
   }
 
   private getPageContent = async (
