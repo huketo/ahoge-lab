@@ -3,7 +3,7 @@ import clsx from 'clsx';
 import Image from 'next/image';
 import Link from 'next/link';
 
-import { Quote } from '../quote';
+import { Quote } from '../Quote';
 import { BlockValue, NotionListBlock, TransformedBlock } from '@/lib/notionApi';
 import { isAllowedDomain } from '@/lib/utils';
 
