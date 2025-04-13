@@ -160,7 +160,7 @@ export default function PortfolioPage() {
 			<div className="container py-8">
 				{isLoading ? (
 					<div className="flex justify-center items-center py-12">
-						<div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+						<div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
 					</div>
 				) : filteredProjects.length === 0 ? (
 					<div className="text-center py-12">
