@@ -21,20 +21,20 @@ export default async function Home() {
 							</span>
 						</h1>
 						<p className="text-xl text-muted-foreground">
-							こんにちは! I&apos;m Ahoge Hakase, your guide
-							through programming, research, and all things
-							kawaii~
+							안녕하세요, I&apos;m Ahoge Hakase 👨🏻‍🔬✨
 						</p>
-						<Link href="/blog">
-							<Button className="group" size="lg">
-								Read Blog{" "}
-								<ChevronRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
-							</Button>
-						</Link>
+						<div className="pt-2">
+							<Link href="/blog">
+								<Button className="group" size="lg">
+									Read Blog
+									<ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+								</Button>
+							</Link>
+						</div>
 					</div>
 					<div className="relative mx-auto aspect-square w-full max-w-md">
 						<Image
-							src="/placeholder.svg"
+							src="/ahoge-hakase.png"
 							alt="Ahoge Hakase"
 							fill
 							className="animate-float object-contain"
