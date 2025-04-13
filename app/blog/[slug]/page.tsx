@@ -1,10 +1,10 @@
-import Image from "next/image";
 import { notFound } from "next/navigation";
+import { notionApi } from "@/lib/notion";
+import { NotionBlockRenderer } from "@/components/notion/NotionBlockRenderer";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Calendar, Clock, Twitter, Facebook, Link2 } from "lucide-react";
-import { notionApi } from "@/lib/notionApi";
-import { NotionBlockRenderer } from "@/components/notion/NotionBlockRenderer";
+import Image from "next/image";
 
 type PageProps = {
 	params: {

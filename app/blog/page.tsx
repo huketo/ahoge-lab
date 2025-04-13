@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Search } from "lucide-react";
-
-import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
-import { Post } from "@/lib/notionApi";
+import { Input } from "@/components/ui/Input";
+import { Button } from "@/components/ui/Button";
+import { Search, ArrowUp } from "lucide-react";
+import { Post } from "@/lib/notion/types";
 
 export default function BlogPage() {
 	const [tags, setTags] = useState<string[]>([]);
@@ -18,6 +18,7 @@ export default function BlogPage() {
 	const [hasMore, setHasMore] = useState(true);
 	const [nextCursor, setNextCursor] = useState<string | undefined>(undefined);
 	const [initialLoad, setInitialLoad] = useState(true);
+	const [showScrollTop, setShowScrollTop] = useState(false);
 
 	const limit = 12; // 한 번에 가져올 게시물 수를 12개로 수정
 	const observerRef = useRef<IntersectionObserver | null>(null);
@@ -134,6 +135,30 @@ export default function BlogPage() {
 		};
 	}, [handleObserver]);
 
+	// 스크롤 위치를 감지하여 맨 위로 가기 버튼 표시 여부 결정
+	useEffect(() => {
+		const handleScroll = () => {
+			if (window.scrollY > 300) {
+				setShowScrollTop(true);
+			} else {
+				setShowScrollTop(false);
+			}
+		};
+
+		window.addEventListener("scroll", handleScroll);
+		return () => {
+			window.removeEventListener("scroll", handleScroll);
+		};
+	}, []);
+
+	// 맨 위로 이동하는 함수
+	const scrollToTop = () => {
+		window.scrollTo({
+			top: 0,
+			behavior: "smooth",
+		});
+	};
+
 	const toggleTag = (tag: string) => {
 		setSelectedTags((prev) =>
 			prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
@@ -142,8 +167,8 @@ export default function BlogPage() {
 
 	return (
 		<div className="min-h-screen bg-gradient-to-b from-pink-50 to-background dark:from-pink-950/20 pb-12">
-			{/* Search and Filter Section */}
-			<section className="sticky top-16 z-40 border-b bg-background/80 backdrop-blur-sm">
+			{/* Search and Filter Section - sticky 속성 제거 */}
+			<section className="border-b bg-background/80 backdrop-blur-sm">
 				<div className="container py-4">
 					{/* Search Bar */}
 					<div className="relative mb-4">
@@ -234,6 +259,19 @@ export default function BlogPage() {
 					)}
 				</div>
 			</div>
+
+			{/* 맨 위로 이동 버튼 */}
+			{showScrollTop && (
+				<Button
+					variant="secondary"
+					size="icon"
+					className="fixed bottom-6 left-6 z-50 rounded-full shadow-lg"
+					onClick={scrollToTop}
+					aria-label="맨 위로 이동"
+				>
+					<ArrowUp className="h-5 w-5" />
+				</Button>
+			)}
 		</div>
 	);
 }

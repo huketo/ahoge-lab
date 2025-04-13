@@ -1,96 +1,50 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ExternalLink, Github } from "lucide-react";
 
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-
-// Mock data for demonstration
-const categories = ["Web", "Mobile", "Desktop", "Library", "Design"];
-
-const technologies = [
-	"React",
-	"Next.js",
-	"TypeScript",
-	"Node.js",
-	"Tailwind",
-	"Python",
-	"Flutter",
-	"Rust",
-];
-
-const projects = [
-	{
-		title: "Pixel Perfect Editor",
-		description:
-			"A modern pixel art editor with real-time collaboration features and custom brush support.",
-		image: "/placeholder.svg",
-		categories: ["Web", "Desktop"],
-		technologies: ["React", "TypeScript", "Node.js"],
-		demoUrl: "https://demo.example.com",
-		githubUrl: "https://github.com/example",
-	},
-	{
-		title: "Weather Forecast App",
-		description:
-			"Beautiful weather application with animated transitions and accurate forecasts.",
-		image: "/placeholder.svg",
-		categories: ["Mobile"],
-		technologies: ["Flutter", "Python"],
-		demoUrl: "https://demo.example.com",
-		githubUrl: "https://github.com/example",
-	},
-	{
-		title: "Data Visualization Library",
-		description:
-			"High-performance data visualization library with support for large datasets.",
-		image: "/placeholder.svg",
-		categories: ["Library"],
-		technologies: ["TypeScript", "React"],
-		demoUrl: "https://demo.example.com",
-		githubUrl: "https://github.com/example",
-	},
-	{
-		title: "Task Management System",
-		description:
-			"Efficient task management system with real-time updates and team collaboration features.",
-		image: "/placeholder.svg",
-		categories: ["Web"],
-		technologies: ["Next.js", "TypeScript", "Node.js"],
-		demoUrl: "https://demo.example.com",
-		githubUrl: "https://github.com/example",
-	},
-	{
-		title: "System Monitor Dashboard",
-		description:
-			"Real-time system monitoring dashboard with beautiful visualizations.",
-		image: "/placeholder.svg",
-		categories: ["Desktop"],
-		technologies: ["Rust", "TypeScript", "React"],
-		demoUrl: "https://demo.example.com",
-		githubUrl: "https://github.com/example",
-	},
-	{
-		title: "UI Component Library",
-		description:
-			"A collection of beautiful and accessible UI components for modern web applications.",
-		image: "/placeholder.svg",
-		categories: ["Library", "Design"],
-		technologies: ["React", "TypeScript", "Tailwind"],
-		demoUrl: "https://demo.example.com",
-		githubUrl: "https://github.com/example",
-	},
-] as const;
+import { Portfolio } from "@/lib/notion/types";
 
 export default function PortfolioPage() {
+	const [projects, setProjects] = useState<Portfolio[]>([]);
+	const [categories, setCategories] = useState<string[]>([]);
+	const [technologies, setTechnologies] = useState<string[]>([]);
 	const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
 	const [selectedTechnologies, setSelectedTechnologies] = useState<string[]>(
 		[]
 	);
+	const [isLoading, setIsLoading] = useState(true);
 
+	// 포트폴리오 데이터 및 필터 옵션 가져오기
+	useEffect(() => {
+		async function fetchInitialData() {
+			try {
+				// API에서 모든 프로젝트 데이터 가져오기
+				const projectsResponse = await fetch("/api/portfolio");
+				const projectsData = await projectsResponse.json();
+
+				// API에서 카테고리 및 기술 메타데이터 가져오기
+				const metadataResponse = await fetch("/api/portfolio/metadata");
+				const metadataData = await metadataResponse.json();
+
+				setProjects(projectsData.portfolios || []);
+				setCategories(metadataData.categories || []);
+				setTechnologies(metadataData.technologies || []);
+			} catch (error) {
+				console.error("데이터 로딩 중 오류 발생:", error);
+			} finally {
+				setIsLoading(false);
+			}
+		}
+
+		fetchInitialData();
+	}, []);
+
+	// 카테고리 토글
 	const toggleCategory = (category: string) => {
 		setSelectedCategories((prev) =>
 			prev.includes(category)
@@ -99,6 +53,7 @@ export default function PortfolioPage() {
 		);
 	};
 
+	// 기술 토글
 	const toggleTechnology = (tech: string) => {
 		setSelectedTechnologies((prev) =>
 			prev.includes(tech)
@@ -107,21 +62,34 @@ export default function PortfolioPage() {
 		);
 	};
 
-	const filteredProjects = projects.filter((project) => {
-		const matchesCategories =
-			selectedCategories.length === 0 ||
-			project.categories.some((category) =>
-				selectedCategories.includes(category)
-			);
+	// 필터링된 프로젝트 가져오기
+	const getFilteredProjects = useCallback(() => {
+		if (
+			selectedCategories.length === 0 &&
+			selectedTechnologies.length === 0
+		) {
+			return projects;
+		}
 
-		const matchesTechnologies =
-			selectedTechnologies.length === 0 ||
-			project.technologies.some((tech) =>
-				selectedTechnologies.includes(tech)
-			);
+		return projects.filter((project) => {
+			const matchesCategories =
+				selectedCategories.length === 0 ||
+				project.categories.some((category) =>
+					selectedCategories.includes(category)
+				);
 
-		return matchesCategories && matchesTechnologies;
-	});
+			const matchesTechnologies =
+				selectedTechnologies.length === 0 ||
+				project.technologies.some((tech) =>
+					selectedTechnologies.includes(tech)
+				);
+
+			return matchesCategories && matchesTechnologies;
+		});
+	}, [projects, selectedCategories, selectedTechnologies]);
+
+	// 필터링된 프로젝트
+	const filteredProjects = getFilteredProjects();
 
 	return (
 		<div className="min-h-screen bg-gradient-to-b from-pink-50 to-background dark:from-pink-950/20 pb-12">
@@ -138,8 +106,8 @@ export default function PortfolioPage() {
 			</div>
 
 			{/* Filters */}
-			<section className="sticky top-16 z-40 border-b bg-background/80 backdrop-blur-sm">
-				<div className="container py-4">
+			<section className="sticky top-16 z-40 container py-4">
+				<div className="rounded-lg border border-border p-4 shadow-sm bg-card">
 					{/* Categories */}
 					<div className="space-y-2">
 						<h2 className="text-sm font-medium text-muted-foreground">
@@ -190,72 +158,94 @@ export default function PortfolioPage() {
 
 			{/* Projects Grid */}
 			<div className="container py-8">
-				<div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-					{filteredProjects.map((project) => (
-						<div
-							key={project.title}
-							className="group relative overflow-hidden rounded-lg border bg-card p-4 text-card-foreground transition-all hover:-translate-y-1 hover:shadow-lg"
-						>
-							<div className="relative mb-4 aspect-video overflow-hidden rounded-md bg-muted">
-								<Image
-									src={project.image || "/placeholder.svg"}
-									alt={project.title}
-									fill
-									className="object-cover transition-transform group-hover:scale-105"
-								/>
-							</div>
-							<div className="space-y-2">
-								<div className="flex items-start justify-between">
-									<h3 className="font-semibold">
-										{project.title}
-									</h3>
-									<div className="flex gap-2">
-										<Button
-											variant="ghost"
-											size="icon"
-											className="h-8 w-8"
-											asChild
-										>
-											<Link href={project.demoUrl}>
-												<ExternalLink className="h-4 w-4" />
-												<span className="sr-only">
-													Visit demo
-												</span>
-											</Link>
-										</Button>
-										<Button
-											variant="ghost"
-											size="icon"
-											className="h-8 w-8"
-											asChild
-										>
-											<Link href={project.githubUrl}>
-												<Github className="h-4 w-4" />
-												<span className="sr-only">
-													View source
-												</span>
-											</Link>
-										</Button>
+				{isLoading ? (
+					<div className="flex justify-center items-center py-12">
+						<div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+					</div>
+				) : filteredProjects.length === 0 ? (
+					<div className="text-center py-12">
+						<p className="text-xl text-muted-foreground">
+							No projects found
+						</p>
+					</div>
+				) : (
+					<div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+						{filteredProjects.map((project) => (
+							<div
+								key={project.id}
+								className="group relative overflow-hidden rounded-lg border bg-card p-4 text-card-foreground transition-all hover:-translate-y-1 hover:shadow-lg"
+							>
+								<div className="relative mb-4 aspect-video overflow-hidden rounded-md bg-muted">
+									<Image
+										src={
+											project.coverImage ||
+											"/placeholder.svg"
+										}
+										alt={project.title}
+										fill
+										className="object-cover transition-transform group-hover:scale-105"
+									/>
+								</div>
+								<div className="space-y-2">
+									<div className="flex items-start justify-between">
+										<h3 className="font-semibold">
+											{project.title}
+										</h3>
+										<div className="flex gap-2">
+											{project.demoUrl && (
+												<Button
+													variant="ghost"
+													size="icon"
+													className="h-8 w-8"
+													asChild
+												>
+													<Link
+														href={project.demoUrl}
+														target="_blank"
+													>
+														<ExternalLink className="h-4 w-4" />
+														<span className="sr-only">
+															Visit demo
+														</span>
+													</Link>
+												</Button>
+											)}
+											{project.githubUrl && (
+												<Button
+													variant="ghost"
+													size="icon"
+													className="h-8 w-8"
+													asChild
+												>
+													<Link
+														href={project.githubUrl}
+														target="_blank"
+													>
+														<Github className="h-4 w-4" />
+														<span className="sr-only">
+															View source
+														</span>
+													</Link>
+												</Button>
+											)}
+										</div>
+									</div>
+									<div className="flex flex-wrap gap-2">
+										{project.technologies.map((tech) => (
+											<Badge
+												key={tech}
+												variant="secondary"
+												className="text-xs"
+											>
+												{tech}
+											</Badge>
+										))}
 									</div>
 								</div>
-								<p className="text-sm text-muted-foreground line-clamp-2">
-									{project.description}
-								</p>
-								<div className="flex flex-wrap gap-2">
-									{project.technologies.map((tech) => (
-										<Badge
-											key={tech}
-											variant="secondary"
-											className="text-xs"
-										>
-											{tech}
-										</Badge>
-									))}
-								</div>
 							</div>
-						</div>
-					))}
-				</div>
+						))}
+					</div>
+				)}
 			</div>
 		</div>
 	);

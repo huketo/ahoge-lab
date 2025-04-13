@@ -1,5 +1,5 @@
-import { NextResponse, NextRequest } from "next/server";
-import { notionApi } from "@/lib/notionApi";
+import { NextRequest, NextResponse } from "next/server";
+import { notionApi } from "@/lib/notion";
 
 export async function POST(request: NextRequest) {
 	try {

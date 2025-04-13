@@ -1,9 +1,9 @@
 import Image from "next/image";
-import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
-import { notionApi } from "@/lib/notionApi";
+import Link from "next/link";
+import { notionApi } from "@/lib/notion";
 
 export default async function Home() {
 	const recentPosts = await notionApi.getPosts("desc", 1, 3);
