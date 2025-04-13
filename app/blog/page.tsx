@@ -1,12 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Search } from "lucide-react";
 
 import { Input } from "@/components/ui/Input";
-import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Post } from "@/lib/notionApi";
 
@@ -15,8 +14,62 @@ export default function BlogPage() {
 	const [selectedTags, setSelectedTags] = useState<string[]>([]);
 	const [searchQuery, setSearchQuery] = useState("");
 	const [posts, setPosts] = useState<Post[]>([]);
-	const [currentPage, setCurrentPage] = useState<number>(1);
-	const limit = 9;
+	const [loading, setLoading] = useState(false);
+	const [hasMore, setHasMore] = useState(true);
+	const [nextCursor, setNextCursor] = useState<string | undefined>(undefined);
+	const [initialLoad, setInitialLoad] = useState(true);
+
+	const limit = 12; // 한 번에 가져올 게시물 수를 12개로 수정
+	const observerRef = useRef<IntersectionObserver | null>(null);
+	const loadingRef = useRef<HTMLDivElement>(null);
+
+	// fetchPosts 함수를 useCallback으로 메모이제이션
+	const fetchPosts = useCallback(async () => {
+		if (loading || !hasMore) return;
+
+		setLoading(true);
+		try {
+			const body = {
+				sortOrder: "desc",
+				limit,
+				tags: selectedTags,
+				search: searchQuery,
+				cursor: nextCursor,
+			};
+
+			const res = await fetch("/api/blog/query-posts", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify(body),
+			});
+
+			const data = await res.json();
+
+			if (data.posts.length === 0) {
+				setHasMore(false);
+			} else {
+				// 중복 게시물 필터링 로직 추가
+				setPosts((prev) => {
+					// 기존 posts에 있는 id들을 Set으로 만들어 빠른 검색 가능하게 함
+					const existingIds = new Set(
+						prev.map((post: Post) => post.id)
+					);
+					// 새로운 posts에서 기존에 없는 것만 필터링
+					const newPosts = data.posts.filter(
+						(post: Post) => !existingIds.has(post.id)
+					);
+					return [...prev, ...newPosts];
+				});
+
+				setNextCursor(data.nextCursor);
+				setHasMore(!!data.nextCursor);
+			}
+		} catch (error) {
+			console.error("Failed to fetch posts:", error);
+		} finally {
+			setLoading(false);
+		}
+	}, [loading, hasMore, selectedTags, searchQuery, nextCursor, limit]);
 
 	// 태그를 가져옵니다.
 	useEffect(() => {
@@ -28,48 +81,63 @@ export default function BlogPage() {
 		fetchTags();
 	}, []);
 
-	// 필터 조건 및 페이지 변경 시 POST 요청으로 posts를 가져옵니다.
+	// 필터 조건 변경시 posts를 초기화하고 새로 가져옵니다.
 	useEffect(() => {
-		async function fetchPosts() {
-			try {
-				const body = {
-					sortOrder: "desc",
-					page: currentPage,
-					limit,
-					tags: selectedTags,
-					search: searchQuery,
-				};
-				const res = await fetch("/api/blog/query-posts", {
-					method: "POST",
-					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify(body),
-				});
-				const data = await res.json();
-				setPosts(data.posts);
-			} catch (error) {
-				console.error("Failed to fetch posts:", error);
-			}
+		// 필터 조건이 변경되면 상태 초기화
+		setPosts([]);
+		setNextCursor(undefined);
+		setHasMore(true);
+		setInitialLoad(true); // 초기 로딩 상태로 설정
+	}, [selectedTags, searchQuery]);
+
+	// 초기 로딩 또는 필터 조건 변경 시에만 데이터를 가져오는 효과
+	useEffect(() => {
+		if (initialLoad) {
+			fetchPosts();
+			setInitialLoad(false);
 		}
-		fetchPosts();
-	}, [selectedTags, searchQuery, currentPage]);
+	}, [initialLoad, fetchPosts]);
+
+	// IntersectionObserver 설정
+	const handleObserver = useCallback(
+		(entries: IntersectionObserverEntry[]) => {
+			const [target] = entries;
+			if (target.isIntersecting && hasMore && !loading && !initialLoad) {
+				fetchPosts();
+			}
+		},
+		[hasMore, loading, initialLoad, fetchPosts]
+	);
+
+	// IntersectionObserver 등록
+	useEffect(() => {
+		const options = {
+			root: null,
+			rootMargin: "0px",
+			threshold: 0.1,
+		};
+
+		if (observerRef.current) {
+			observerRef.current.disconnect();
+		}
+
+		observerRef.current = new IntersectionObserver(handleObserver, options);
+
+		if (loadingRef.current) {
+			observerRef.current.observe(loadingRef.current);
+		}
+
+		return () => {
+			if (observerRef.current) {
+				observerRef.current.disconnect();
+			}
+		};
+	}, [handleObserver]);
 
 	const toggleTag = (tag: string) => {
 		setSelectedTags((prev) =>
 			prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
 		);
-		// 태그 필터가 변경되면 페이지를 초기화합니다.
-		setCurrentPage(1);
-	};
-
-	const handlePrevious = () => {
-		setCurrentPage((prev) => (prev > 1 ? prev - 1 : prev));
-	};
-
-	const handleNext = () => {
-		// 불러온 게시글 개수가 limit보다 작으면 마지막 페이지
-		if (posts.length === limit) {
-			setCurrentPage((prev) => prev + 1);
-		}
 	};
 
 	return (
@@ -85,10 +153,7 @@ export default function BlogPage() {
 							placeholder="Search posts..."
 							className="pl-10"
 							value={searchQuery}
-							onChange={(e) => {
-								setSearchQuery(e.target.value);
-								setCurrentPage(1);
-							}}
+							onChange={(e) => setSearchQuery(e.target.value)}
 						/>
 					</div>
 
@@ -114,10 +179,10 @@ export default function BlogPage() {
 
 			{/* Blog Posts Grid */}
 			<div className="container py-8">
-				<div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+				<div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
 					{posts?.map((post) => (
 						<Link
-							key={post.slug}
+							key={post.id}
 							href={`/blog/${post.slug}`}
 							className="group relative overflow-hidden rounded-lg border bg-card p-4 text-card-foreground transition-all hover:-translate-y-1 hover:shadow-lg"
 						>
@@ -157,25 +222,16 @@ export default function BlogPage() {
 					))}
 				</div>
 
-				{/* Pagination */}
-				<div className="mt-8 flex justify-center gap-2">
-					<Button
-						variant="outline"
-						onClick={handlePrevious}
-						disabled={currentPage === 1}
-					>
-						Previous
-					</Button>
-					<Button variant="outline" disabled>
-						{currentPage}
-					</Button>
-					<Button
-						variant="outline"
-						onClick={handleNext}
-						disabled={posts.length < limit}
-					>
-						Next
-					</Button>
+				{/* 무한 스크롤을 위한 로딩 표시 */}
+				<div ref={loadingRef} className="flex justify-center py-8">
+					{loading && (
+						<div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+					)}
+					{!hasMore && posts.length > 0 && (
+						<p className="text-center text-muted-foreground">
+							더 이상 게시물이 없습니다
+						</p>
+					)}
 				</div>
 			</div>
 		</div>
