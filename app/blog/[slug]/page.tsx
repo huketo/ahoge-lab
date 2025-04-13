@@ -6,15 +6,12 @@ import { Button } from "@/components/ui/Button";
 import { Calendar, Clock, Twitter, Facebook, Link2 } from "lucide-react";
 import Image from "next/image";
 
-type PageProps = {
-	params: {
-		slug: string;
-	};
-};
-
-export default async function BlogPost(props: PageProps) {
-	const params = await props.params;
-	const slug = params.slug;
+export default async function BlogPost({
+	params,
+}: {
+	params: Promise<{ slug: string }>;
+}) {
+	const { slug } = await params;
 
 	let post;
 	try {
